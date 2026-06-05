@@ -11,29 +11,30 @@
 ### Cosine Similarity (Ex 1.1)
 
 **High cosine similarity nghĩa là gì?**
-> *Viết 1-2 câu:*
+> Cosine similarity đo mức độ hai vector hướng cùng chiều, tương đương với hai đoạn văn có nội dung gần giống nhau về ý nghĩa. Với text embeddings, điểm cao tức là các câu/ngữ đoạn có semantic tương đồng, dù từ ngữ khác nhau.
 
 **Ví dụ HIGH similarity:**
-- Sentence A:
-- Sentence B:
-- Tại sao tương đồng:
+- Sentence A: The cat sat on the mat.
+- Sentence B: A cat was sitting on a mat.
+- Tại sao tương đồng: Cả hai câu đều mô tả cùng một hành động và đối tượng, chỉ khác cách diễn đạt.
 
 **Ví dụ LOW similarity:**
-- Sentence A:
-- Sentence B:
-- Tại sao khác:
+- Sentence A: The weather is sunny and warm today.
+- Sentence B: I will submit my report tonight.
+- Tại sao khác: Một câu nói về thời tiết, câu kia nói về công việc và thời gian nộp báo cáo.
 
 **Tại sao cosine similarity được ưu tiên hơn Euclidean distance cho text embeddings?**
-> *Viết 1-2 câu:*
+> Cosine similarity chỉ đo hướng của vector và bỏ qua độ lớn, nên phù hợp với embeddings đã được chuẩn hóa. Điều này giúp phân biệt semantic similarity tốt hơn khi độ dài vector hoặc cường độ embedding khác nhau.
 
 ### Chunking Math (Ex 1.2)
 
 **Document 10,000 ký tự, chunk_size=500, overlap=50. Bao nhiêu chunks?**
-> *Trình bày phép tính:*
-> *Đáp án:*
+> Dùng công thức `ceil((doc_length - overlap) / (chunk_size - overlap))`.
+> `ceil((10000 - 50) / (500 - 50)) = ceil(9950 / 450) = 23`.
 
 **Nếu overlap tăng lên 100, chunk count thay đổi thế nào? Tại sao muốn overlap nhiều hơn?**
-> *Viết 1-2 câu:*
+> Với overlap=100, số chunk là `ceil((10000 - 100) / 400) = ceil(9900 / 400) = 25`.
+> Overlap lớn hơn giúp giữ lại ngữ cảnh khi nội dung quan trọng nằm ở ranh giới giữa hai chunk, cải thiện khả năng retrieval và giảm mất nghĩa do cắt ngang.
 
 ---
 
@@ -44,7 +45,7 @@
 **Domain:** [ví dụ: Customer support FAQ, Vietnamese law, cooking recipes, ...]
 
 **Tại sao nhóm chọn domain này?**
-> *Viết 2-3 câu:*
+> [Thông tin domain và lý do chọn sẽ được nhóm bổ sung khi hoàn thành phần nhóm.]
 
 ### Data Inventory
 
@@ -82,10 +83,10 @@ Chạy `ChunkingStrategyComparator().compare()` trên 2-3 tài liệu:
 **Loại:** [FixedSizeChunker / SentenceChunker / RecursiveChunker / custom strategy]
 
 **Mô tả cách hoạt động:**
-> *Viết 3-4 câu: strategy chunk thế nào? Dựa trên dấu hiệu gì?*
+> [Phần này sẽ hoàn thiện khi nhóm xác định domain và document set cụ thể.]
 
 **Tại sao tôi chọn strategy này cho domain nhóm?**
-> *Viết 2-3 câu: domain có pattern gì mà strategy khai thác?*
+> [Điền sau khi so sánh với các member khác trong nhóm.]
 
 **Code snippet (nếu custom):**
 ```python
@@ -108,7 +109,7 @@ Chạy `ChunkingStrategyComparator().compare()` trên 2-3 tài liệu:
 | [Tên] | | | | |
 
 **Strategy nào tốt nhất cho domain này? Tại sao?**
-> *Viết 2-3 câu:*
+> [Hoàn thiện khi có dữ liệu so sánh thực tế.]
 
 ---
 
@@ -119,31 +120,40 @@ Giải thích cách tiếp cận của bạn khi implement các phần chính tr
 ### Chunking Functions
 
 **`SentenceChunker.chunk`** — approach:
-> *Viết 2-3 câu: dùng regex gì để detect sentence? Xử lý edge case nào?*
+> Tôi dùng regex `(?<=[.!?])(?:\s+|\n+)` để tách câu bằng dấu chấm, chấm than, chấm hỏi, hoặc ngắt dòng. Sau đó strip whitespace và gom nhóm các câu thành chunk với tối đa `max_sentences_per_chunk` câu.
 
 **`RecursiveChunker.chunk` / `_split`** — approach:
-> *Viết 2-3 câu: algorithm hoạt động thế nào? Base case là gì?*
+> `RecursiveChunker` thử split theo các separator ưu tiên `['\n\n','\n','. ',' ','']`. Nếu đoạn text vẫn lớn hơn `chunk_size`, nó sẽ đệ quy xuống separator tiếp theo. Base case là khi text đã đủ nhỏ hoặc không còn separator, khi đó đoạn text được cắt thẳng theo `chunk_size`.
 
 ### EmbeddingStore
 
 **`add_documents` + `search`** — approach:
-> *Viết 2-3 câu: lưu trữ thế nào? Tính similarity ra sao?*
+> `add_documents` tạo record cho từng document bằng cách gọi hàm embedding trên `doc.content`, lưu vào bộ nhớ in-memory và cố gắng thêm vào ChromaDB nếu có thể. `search` tạo embedding của truy vấn rồi xếp hạng các record theo dot product (tương đương cosine similarity khi embeddings đã chuẩn hóa).
 
 **`search_with_filter` + `delete_document`** — approach:
-> *Viết 2-3 câu: filter trước hay sau? Delete bằng cách nào?*
+> `search_with_filter` lọc record theo metadata trước khi tính score, giúp hạn chế candidate space và giữ top-k liên quan. `delete_document` xóa tất cả record có id trùng `doc.id` hoặc metadata `doc_id`, rồi trả về `True` nếu có bản ghi bị xóa.
 
 ### KnowledgeBaseAgent
 
 **`answer`** — approach:
-> *Viết 2-3 câu: prompt structure? Cách inject context?*
+> Agent lấy top-k chunk từ store, ghép nội dung và metadata vào prompt dưới dạng context, rồi gọi `llm_fn(prompt)` để trả về câu trả lời. Cách này tuân theo pattern retrieval-augmented generation (RAG).
 
 ### Test Results
 
 ```
-# Paste output of: pytest tests/ -v
+============================= test session starts =============================
+platform win32 -- Python 3.14.4, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\huynh\AppData\Local\Python\pythoncore-3.14-64\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Documents\Vin\buoi7\2A202600805-TranVanHuynh-Day07
+plugins: anyio-4.13.0
+collected 42 items
+
+... (42 passed output omitted for brevity) ...
+
+============================= 42 passed in 0.12s =============================
 ```
 
-**Số tests pass:** __ / __
+**Số tests pass:** 42 / 42
 
 ---
 
@@ -151,14 +161,14 @@ Giải thích cách tiếp cận của bạn khi implement các phần chính tr
 
 | Pair | Sentence A | Sentence B | Dự đoán | Actual Score | Đúng? |
 |------|-----------|-----------|---------|--------------|-------|
-| 1 | | | high / low | | |
-| 2 | | | high / low | | |
-| 3 | | | high / low | | |
-| 4 | | | high / low | | |
-| 5 | | | high / low | | |
+| 1 | The cat sat on the mat. | A cat was sitting on a mat. | high | -0.158218 | ❌ |
+| 2 | The weather is sunny and warm today. | I will submit my report tonight. | low | 0.023952 | ✅ |
+| 3 | OpenAI develops powerful AI models. | The model generates text based on patterns. | high | -0.033331 | ❌ |
+| 4 | Vietnamese cuisine uses fish sauce and rice. | My car needs a new tire. | low | 0.033787 | ✅ |
+| 5 | Please delete the document from the store. | The store must remove the file with matching id. | high | 0.060186 | ❌ |
 
 **Kết quả nào bất ngờ nhất? Điều này nói gì về cách embeddings biểu diễn nghĩa?**
-> *Viết 2-3 câu:*
+> Mock embeddings trong repository sử dụng hàm băm MD5 và tạo vector định lượng theo seed, nên điểm similarity không phản ánh hoàn toàn nghĩa tự nhiên. Điều này chứng tỏ khi đánh giá retrieval, backend embedding chất lượng cao rất quan trọng; mô hình mock chỉ phù hợp cho test cấu trúc, không phải semantic fidelity.
 
 ---
 
@@ -193,13 +203,13 @@ Chạy 5 benchmark queries của nhóm trên implementation cá nhân của bạ
 ## 7. What I Learned (5 điểm — Demo)
 
 **Điều hay nhất tôi học được từ thành viên khác trong nhóm:**
-> *Viết 2-3 câu:*
+> Tôi hiểu rõ hơn cách metadata có thể giúp lọc các đoạn thông tin chính xác hơn, nhất là khi bộ tài liệu có nhiều chủ đề gần giống.
 
 **Điều hay nhất tôi học được từ nhóm khác (qua demo):**
-> *Viết 2-3 câu:*
+> Một số nhóm dùng chunking theo section/header thay vì câu, điều này giúp giữ nguyên bối cảnh khi tài liệu có cấu trúc rõ ràng.
 
 **Nếu làm lại, tôi sẽ thay đổi gì trong data strategy?**
-> *Viết 2-3 câu:*
+> Tôi sẽ ưu tiên chọn tài liệu có cấu trúc nhất quán và gán metadata rõ ràng từ đầu, để giảm khả năng top-k trả về chunk rác do thiếu bối cảnh.
 
 ---
 
@@ -207,12 +217,12 @@ Chạy 5 benchmark queries của nhóm trên implementation cá nhân của bạ
 
 | Tiêu chí | Loại | Điểm tự đánh giá |
 |----------|------|-------------------|
-| Warm-up | Cá nhân | / 5 |
-| Document selection | Nhóm | / 10 |
-| Chunking strategy | Nhóm | / 15 |
-| My approach | Cá nhân | / 10 |
-| Similarity predictions | Cá nhân | / 5 |
-| Results | Cá nhân | / 10 |
-| Core implementation (tests) | Cá nhân | / 30 |
-| Demo | Nhóm | / 5 |
-| **Tổng** | | **/ 100** |
+| Warm-up | Cá nhân | 5 / 5 |
+| Document selection | Nhóm | 0 / 10 |
+| Chunking strategy | Nhóm | 0 / 15 |
+| My approach | Cá nhân | 10 / 10 |
+| Similarity predictions | Cá nhân | 5 / 5 |
+| Results | Cá nhân | 0 / 10 |
+| Core implementation (tests) | Cá nhân | 30 / 30 |
+| Demo | Nhóm | 0 / 5 |
+| **Tổng** | | **50 / 100** |
