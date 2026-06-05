@@ -13,3 +13,7 @@ python-dotenv>=1.0
 
 # Optional: for bonus tasks
 # chromadb>=0.4.0      # Real vector database integration
+Flask>=2.0
+# Optional: to use Gemini (Google) generative model integration
+# pip install google-generativeai
+# google-generativeai>=0.1

@@ -25,6 +25,8 @@ _mock_embed = getattr(_m, '_mock_embed')
 FixedSizeChunker = getattr(_m, 'FixedSizeChunker')
 SentenceChunker = getattr(_m, 'SentenceChunker')
 RecursiveChunker = getattr(_m, 'RecursiveChunker')
+ParagraphChunker = getattr(_m, 'ParagraphChunker')
+SlidingWindowChunker = getattr(_m, 'SlidingWindowChunker')
 ChunkingStrategyComparator = getattr(_m, 'ChunkingStrategyComparator')
 MockEmbedder = getattr(_m, 'MockEmbedder')
 template = _m
@@ -52,7 +54,14 @@ class TestProjectStructure(unittest.TestCase):
 class TestClassBasedInterfaces(unittest.TestCase):
 
     def test_chunker_classes_exist(self):
-        self.assertTrue(all([FixedSizeChunker, SentenceChunker, RecursiveChunker, ChunkingStrategyComparator]))
+        self.assertTrue(all([
+            FixedSizeChunker,
+            SentenceChunker,
+            RecursiveChunker,
+            ParagraphChunker,
+            SlidingWindowChunker,
+            ChunkingStrategyComparator,
+        ]))
 
     def test_mock_embedder_exists(self):
         embedder = MockEmbedder()
@@ -119,6 +128,28 @@ class TestSentenceChunker(unittest.TestCase):
         chunks = SentenceChunker(max_sentences_per_chunk=2).chunk(SAMPLE_TEXT)
         for c in chunks:
             self.assertIsInstance(c, str)
+
+
+class TestParagraphChunker(unittest.TestCase):
+
+    def test_splits_on_blank_line(self):
+        text = "first paragraph\n\nsecond paragraph"
+        chunks = ParagraphChunker().chunk(text)
+        self.assertEqual(chunks, ["first paragraph", "second paragraph"])
+
+    def test_empty_text_returns_empty_list(self):
+        self.assertEqual(ParagraphChunker().chunk(""), [])
+
+
+class TestSlidingWindowChunker(unittest.TestCase):
+
+    def test_overlapping_sentence_chunks(self):
+        text = "A. B. C. D."
+        chunks = SlidingWindowChunker(max_sentences_per_chunk=2).chunk(text)
+        self.assertEqual(chunks, ["A. B.", "B. C.", "C. D."])
+
+    def test_empty_text_returns_empty_list(self):
+        self.assertEqual(SlidingWindowChunker().chunk(""), [])
 
 
 class TestRecursiveChunker(unittest.TestCase):

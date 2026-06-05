@@ -62,6 +62,57 @@ class SentenceChunker:
         return chunks
 
 
+class ParagraphChunker:
+    """
+    Split text by paragraph boundaries.
+
+    This preserves semantic units when each paragraph already contains
+    a coherent idea. Paragraph chunking is useful for retrieval when the
+    source document is already formatted in meaningful paragraphs.
+    """
+
+    def __init__(self) -> None:
+        pass
+
+    def chunk(self, text: str) -> list[str]:
+        if not text:
+            return []
+
+        paragraphs = re.split(r"\n\s*\n+", text.strip())
+        return [paragraph.strip() for paragraph in paragraphs if paragraph.strip()]
+
+
+class SlidingWindowChunker:
+    """
+    Split text into overlapping sentence chunks.
+
+    This helps preserve context across sentence boundaries. Each chunk is a
+    sliding window of consecutive sentences, so relevant information that spans
+    multiple sentences is less likely to be split apart.
+    """
+
+    def __init__(self, max_sentences_per_chunk: int = 3) -> None:
+        self.max_sentences_per_chunk = max(1, max_sentences_per_chunk)
+
+    def chunk(self, text: str) -> list[str]:
+        if not text:
+            return []
+
+        sentences = re.split(r'(?<=[.!?])(?:\s+|\n+)', text.strip())
+        sentences = [sentence.strip() for sentence in sentences if sentence.strip()]
+
+        chunks: list[str] = []
+        stride = max(1, self.max_sentences_per_chunk - 1)
+        if len(sentences) <= self.max_sentences_per_chunk:
+            return [" ".join(sentences)]
+
+        for i in range(0, len(sentences) - self.max_sentences_per_chunk + 1, stride):
+            chunk = " ".join(sentences[i : i + self.max_sentences_per_chunk]).strip()
+            if chunk:
+                chunks.append(chunk)
+        return chunks
+
+
 class RecursiveChunker:
     """
     Recursively split text using separators in priority order.
@@ -153,6 +204,8 @@ class ChunkingStrategyComparator:
         fixed_chunks = FixedSizeChunker(chunk_size=chunk_size, overlap=0).chunk(text)
         sentence_chunks = SentenceChunker(max_sentences_per_chunk=max(1, chunk_size // 100)).chunk(text)
         recursive_chunks = RecursiveChunker(chunk_size=chunk_size).chunk(text)
+        paragraph_chunks = ParagraphChunker().chunk(text)
+        sliding_chunks = SlidingWindowChunker(max_sentences_per_chunk=max(1, chunk_size // 100)).chunk(text)
 
         def summarize(chunks: list[str]) -> dict:
             avg_length = sum(len(chunk) for chunk in chunks) / len(chunks) if chunks else 0.0
@@ -166,4 +219,6 @@ class ChunkingStrategyComparator:
             "fixed_size": summarize(fixed_chunks),
             "by_sentences": summarize(sentence_chunks),
             "recursive": summarize(recursive_chunks),
+            "by_paragraph": summarize(paragraph_chunks),
+            "sliding_window": summarize(sliding_chunks),
         }
